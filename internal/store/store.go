@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -29,6 +30,31 @@ type List struct {
 
 	hostsOnce sync.Once
 	hostsBuf  []byte // 懒生成的标准 hosts 格式
+
+	gzipOnce     sync.Once
+	gzipBuf      []byte // Text 的 gzip，供带宽受限的客户端
+	gzipHosts    sync.Once
+	gzipHostsBuf []byte
+}
+
+func gzipBytes(b []byte) []byte {
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	zw.Write(b)
+	zw.Close()
+	return buf.Bytes()
+}
+
+// GzipText 返回裸域名文本的 gzip 压缩版（懒生成并缓存）。
+func (l *List) GzipText() []byte {
+	l.gzipOnce.Do(func() { l.gzipBuf = gzipBytes(l.Text) })
+	return l.gzipBuf
+}
+
+// GzipHosts 返回 hosts 格式的 gzip 压缩版（懒生成并缓存）。
+func (l *List) GzipHosts() []byte {
+	l.gzipHosts.Do(func() { l.gzipHostsBuf = gzipBytes(l.HostsText()) })
+	return l.gzipHostsBuf
 }
 
 // HostsText 返回标准 hosts 格式（`0.0.0.0 域名`），可直接粘进

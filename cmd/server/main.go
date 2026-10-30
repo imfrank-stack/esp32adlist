@@ -131,7 +131,7 @@ func main() {
 		Addr:              *addr,
 		Handler:           h,
 		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      30 * time.Second,
+		WriteTimeout:      300 * time.Second, // 2Mbps 峰值带宽下 3MB 名单要 25s+，30s 会掐断传输
 		IdleTimeout:       60 * time.Second,
 	}
 	log.Printf("规则版本 %s，%d 个列表，监听 %s", st.Manifest.Version, len(st.Manifest.Lists), *addr)
@@ -243,12 +243,27 @@ func rawFile(kind string) http.HandlerFunc {
 		} else {
 			data, name, ctype = l.HashRaw, l.Info.Name+".u32", "application/octet-stream"
 		}
+		etag := shaFor(l, kind)
+		if kind == "txt" && acceptsGzip(r) {
+			data = l.GzipText()
+			w.Header().Set("Content-Encoding", "gzip")
+			etag += "-gz"
+		}
 		w.Header().Set("Content-Type", ctype)
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		w.Header().Set("Content-Disposition", "inline; filename="+name)
-		w.Header().Set("ETag", `"`+shaFor(l, kind)+`"`)
+		w.Header().Set("ETag", `"`+etag+`"`)
 		http.ServeContent(w, r, name, time.Now().Add(-time.Hour), bytes.NewReader(data))
 	}
+}
+
+// acceptsGzip 判断响应是否可以走 gzip：客户端声明支持且未请求 Range
+// （Range 语义与压缩冲突；u32 二进制也压不动多少，跳过）。
+func acceptsGzip(r *http.Request) bool {
+	if r.Header.Get("Range") != "" {
+		return false
+	}
+	return strings.Contains(r.Header.Get("Accept-Encoding"), "gzip")
 }
 
 // hostsFile 输出标准 hosts 格式（`0.0.0.0 域名`），
@@ -261,10 +276,16 @@ func hostsFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := l.HostsText()
+	etag := l.Info.SHA256Domains[:12] + "-hosts"
+	if acceptsGzip(r) {
+		data = l.GzipHosts()
+		w.Header().Set("Content-Encoding", "gzip")
+		etag += "-gz"
+	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	w.Header().Set("Content-Disposition", "inline; filename="+l.Info.Name+".txt")
-	w.Header().Set("ETag", `"`+l.Info.SHA256Domains[:12]+`-hosts"`)
+	w.Header().Set("ETag", `"`+etag+`"`)
 	http.ServeContent(w, r, l.Info.Name+".txt", time.Now().Add(-time.Hour), bytes.NewReader(data))
 }
 
