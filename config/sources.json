@@ -1,0 +1,229 @@
+{
+  "sources": [
+    {
+      "name": "cn-neohosts-basic",
+      "title": "neoHosts 基础版",
+      "category": "cn",
+      "description": "轻量无冗余，覆盖国内主流广告与追踪域名，误杀率低，适合日常办公/家用。",
+      "files": [
+        "data/raw/neohosts-basic.txt"
+      ],
+      "urls": [
+        "https://cdn.jsdelivr.net/gh/neoFelhz/neohosts@gh-pages/basic/hosts.txt"
+      ]
+    },
+    {
+      "name": "cn-neohosts-full",
+      "title": "neoHosts 完整版",
+      "category": "cn",
+      "description": "基础版之上增加恶意站点、网页挖矿、色情赌博域名拦截。",
+      "files": [
+        "data/raw/neohosts-full.txt"
+      ],
+      "urls": [
+        "https://cdn.jsdelivr.net/gh/neoFelhz/neohosts@gh-pages/full/hosts.txt"
+      ]
+    },
+    {
+      "name": "cn-yhosts",
+      "title": "yhosts",
+      "category": "cn",
+      "description": "专注国内广告拦截的经典轻量列表，适配国内视频、电商、主流 App 的广告与统计域名。",
+      "files": [
+        "data/raw/yhosts.txt"
+      ],
+      "urls": [
+        "https://cdn.jsdelivr.net/gh/VeleSila/yhosts@master/hosts.txt"
+      ]
+    },
+    {
+      "name": "cn-goodbyeads",
+      "title": "GoodbyeAds",
+      "category": "cn",
+      "description": "安卓 App 与国内视频平台开屏/贴片广告专项优化，体积大，建议只给带 PSRAM 或大 Flash 的设备用。",
+      "files": [
+        "data/raw/goodbyeads.txt"
+      ],
+      "urls": [
+        "https://cdn.jsdelivr.net/gh/jerryn70/GoodbyeAds@master/Hosts/GoodbyeAds.txt"
+      ]
+    },
+    {
+      "name": "cn-awavenue",
+      "title": "AWAvenue 秋风广告规则",
+      "category": "cn",
+      "description": "国内 App 开屏、信息流广告规则，体积小，适合低配设备。",
+      "files": [
+        "data/raw/awavenue.txt"
+      ],
+      "urls": [
+        "https://cdn.jsdelivr.net/gh/haha-tiger/AWAvenue-Ads-Rule@main/Filters/AWAvenue-Ads-Rule-Adguard.txt"
+      ]
+    },
+    {
+      "name": "cn-adrules",
+      "title": "AdRules DNS",
+      "category": "cn",
+      "description": "Cats-Team/AdRules 的 DNS 规则子集，覆盖国内广告联盟与常见推广域名。",
+      "files": [
+        "data/raw/adrules-dns.txt"
+      ],
+      "urls": [
+        "https://cdn.jsdelivr.net/gh/Cats-Team/AdRules@main/mod/rules/dns-rules.txt"
+      ]
+    },
+    {
+      "name": "cn-malicious-lite",
+      "title": "国内恶意站点轻量版",
+      "category": "cn",
+      "description": "仅收录国内高风险广告与恶意域名，体积极小，适合叠加在主列表上。",
+      "files": [
+        "data/raw/adblockfilters-lite.txt"
+      ],
+      "urls": [
+        "https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblockhostslite.txt"
+      ]
+    },
+    {
+      "name": "global-stevenblack",
+      "title": "StevenBlack/hosts",
+      "category": "global",
+      "description": "全球最主流的开源 hosts 合集，整合 someonewhocares、MVPS、Peter Lowe 等源。",
+      "files": [
+        "data/raw/stevenblack.txt"
+      ],
+      "urls": [
+        "https://cdn.jsdelivr.net/gh/StevenBlack/hosts@master/hosts"
+      ]
+    },
+    {
+      "name": "global-adguard-dns",
+      "title": "AdGuard DNS filter",
+      "category": "global",
+      "description": "AdGuard 官方 DNS 过滤器（HostlistsRegistry 发布版，AdBlock 语法，构建时自动转换为域名），覆盖全球广告、追踪与社交插件。",
+      "files": [
+        "data/raw/adguard-dns.txt"
+      ],
+      "urls": [
+        "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt"
+      ]
+    },
+    {
+      "name": "global-hagezi-pro-mini",
+      "title": "HaGeZi Multi PRO mini",
+      "category": "global",
+      "description": "面向低内存设备精简过的 PRO 列表，只保留 Top 榜单中出现的域名，性价比最高。",
+      "files": [
+        "data/raw/hagezi-pro-mini.txt"
+      ],
+      "urls": [
+        "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@main/adblock/pro.mini.txt"
+      ]
+    },
+    {
+      "name": "extra-nocoin",
+      "title": "NoCoin 网页挖矿拦截",
+      "category": "extra",
+      "description": "拦截浏览器端加密货币挖矿脚本域名，防止网页偷占 CPU。",
+      "files": [
+        "data/raw/nocoin.txt"
+      ],
+      "urls": [
+        "https://cdn.jsdelivr.net/gh/hoshsadiq/adblock-nocoin-list@master/hosts.txt"
+      ]
+    }
+  ],
+  "profiles": [
+    {
+      "name": "esp32-tiny",
+      "title": "ESP32 极小包",
+      "description": "只保留国内最高频广告域名与挖矿拦截，u32 表约 60 KiB，适合 4MB Flash / 无 PSRAM 设备。",
+      "members": [
+        "cn-yhosts",
+        "cn-malicious-lite",
+        "extra-nocoin"
+      ]
+    },
+    {
+      "name": "esp32-cn",
+      "title": "ESP32 国内均衡包",
+      "description": "国内主力列表并集，日常去广告效果与体积平衡，4MB 设备的推荐默认值。",
+      "members": [
+        "cn-neohosts-basic",
+        "cn-yhosts",
+        "cn-awavenue",
+        "cn-adrules",
+        "cn-malicious-lite",
+        "extra-nocoin"
+      ]
+    },
+    {
+      "name": "esp32-global-lite",
+      "title": "ESP32 全球精简包",
+      "description": "StevenBlack 与 HaGeZi PRO mini 的并集，海外广告与追踪覆盖好，约 0.5MB。",
+      "members": [
+        "global-stevenblack",
+        "global-hagezi-pro-mini",
+        "extra-nocoin"
+      ]
+    },
+    {
+      "name": "esp32-mix",
+      "title": "ESP32 国内外混合包",
+      "description": "国内均衡包 + 全球精简包，约 0.6MB，4MB Flash 设备在留足文件系统空间时的最佳折中。",
+      "members": [
+        "cn-neohosts-basic",
+        "cn-yhosts",
+        "cn-awavenue",
+        "cn-adrules",
+        "cn-malicious-lite",
+        "global-stevenblack",
+        "global-hagezi-pro-mini",
+        "extra-nocoin"
+      ]
+    },
+    {
+      "name": "esp32-cn-plus",
+      "title": "ESP32 国内增强包",
+      "description": "加入 neoHosts 完整版与 GoodbyeAds，覆盖安卓 App 开屏广告，约 1.1MB，需要 8MB Flash 或 PSRAM。",
+      "members": [
+        "cn-neohosts-full",
+        "cn-yhosts",
+        "cn-goodbyeads",
+        "cn-awavenue",
+        "cn-adrules",
+        "cn-malicious-lite",
+        "extra-nocoin"
+      ]
+    },
+    {
+      "name": "esp32-global-plus",
+      "title": "ESP32 全球增强包",
+      "description": "在国内精简包基础上加入 AdGuard DNS 全量过滤器，约 1.1MB。",
+      "members": [
+        "global-stevenblack",
+        "global-hagezi-pro-mini",
+        "global-adguard-dns",
+        "extra-nocoin"
+      ]
+    },
+    {
+      "name": "esp32-max",
+      "title": "ESP32 全量包",
+      "description": "全部源并集，约 2MB，仅建议 8MB/16MB Flash 设备分片按需下载。",
+      "members": [
+        "cn-neohosts-basic",
+        "cn-neohosts-full",
+        "cn-yhosts",
+        "cn-goodbyeads",
+        "cn-awavenue",
+        "cn-adrules",
+        "cn-malicious-lite",
+        "global-stevenblack",
+        "global-adguard-dns",
+        "global-hagezi-pro-mini",
+        "extra-nocoin"
+      ]
+    }
+  ]
+}

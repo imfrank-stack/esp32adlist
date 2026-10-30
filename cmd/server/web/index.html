@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ESP32 广告过滤规则 API</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --line:#e4e7ec; --text:#16181d; --muted:#6b7280;
+    --accent:#0b63ce; --ok:#0f7b4f; --warn:#a15c00; --code:#f2f4f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  .wrap{max-width:980px;margin:0 auto;padding:40px 20px 80px}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:28px}
+  h1{font-size:26px;line-height:1.25;margin:0 0 6px;letter-spacing:-.3px}
+  .sub{color:var(--muted);margin:0}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:#eaf2fd;color:var(--accent);
+    border:1px solid #cfe1fa;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:18px 0 26px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .stat b{display:block;font-size:22px;letter-spacing:-.4px}
+  .stat span{color:var(--muted);font-size:12.5px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:18px}
+  h2{font-size:16px;margin:0 0 12px;letter-spacing:-.2px}
+  h3{font-size:13.5px;margin:18px 0 6px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
+  code{background:var(--code);padding:1px 5px;border-radius:4px}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;margin:8px 0}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+  tr:last-child td{border-bottom:none}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:5px;border:1px solid var(--line);color:var(--muted)}
+  .tag.cn{color:#8a3b00;border-color:#f0d5b8;background:#fdf5ea}
+  .tag.global{color:#0b4f8a;border-color:#cfe1fa;background:#eef5fe}
+  .tag.extra{color:#5b3a8a;border-color:#e0d5f2;background:#f5f0fc}
+  .tag.profile{color:var(--ok);border-color:#c9e6d8;background:#eef8f2}
+  .muted{color:var(--muted)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:26px}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:6px 14px;font-size:13.5px}
+  .kv div:nth-child(odd){color:var(--muted)}
+
+  /* 订阅链接区块 */
+  .subbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .pill{cursor:pointer;border:1px solid var(--line);background:var(--code);border-radius:8px;
+    padding:5px 12px;font-size:13px;user-select:none}
+  .pill.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  select{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .urlbox{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .urlbox input{flex:1;font:12.5px ui-monospace,Menlo,Consolas,monospace;padding:9px 12px;
+    border:1px solid var(--line);border-radius:8px;background:var(--code);color:var(--text);
+    text-overflow:ellipsis;min-width:0}
+  .urlbox input:focus{outline:2px solid #cfe1fa;border-color:var(--accent)}
+  button.copy{cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#fff;
+    border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;white-space:nowrap}
+  button.copy:hover{background:#095ab5}
+  button.copy.done{background:var(--ok);border-color:var(--ok)}
+  .howto{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+  .howto b{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>ESP32 广告过滤规则 API</h1>
+    <p class="sub">分片拉取 · 去重排序 · 32 位哈希索引，按 4MB 内存设备约束设计</p>
+  </div>
+  <span class="badge" id="ver">加载中…</span>
+</header>
+
+<div class="grid">
+  <div class="stat"><b id="s-lists">–</b><span>规则列表</span></div>
+  <div class="stat"><b id="s-domains">–</b><span>全部源并集域名</span></div>
+  <div class="stat"><b id="s-mini">–</b><span>esp32-cn 体积（u32）</span></div>
+  <div class="stat"><b id="s-page">512</b><span>每页域名数</span></div>
+</div>
+
+<section>
+  <h2>订阅链接 · 复制即分发</h2>
+  <p class="muted" style="margin:0 0 12px">地址按你当前访问的主机自动生成，复制后直接粘进 AdGuard Home、Pi-hole、OpenClash、AdGuard 客户端「自定义过滤列表」等任何支持远程列表的工具。</p>
+
+  <div class="subbar" id="fmt">
+    <span class="pill on" data-fmt="hosts">hosts 格式</span>
+    <span class="pill" data-fmt="domains">域名格式</span>
+    <span class="pill" data-fmt="u32">二进制 u32</span>
+  </div>
+
+  <div class="urlbox">
+    <select id="sub-sel"></select>
+    <button class="copy" id="sub-copy">复制链接</button>
+  </div>
+  <div class="urlbox">
+    <input id="sub-url" readonly spellcheck="false">
+  </div>
+
+  <p class="howto">
+    <b>AdGuard Home</b>：过滤器 → DNS 拦截列表 → 添加拦截列表，粘贴 hosts 格式地址&nbsp;&nbsp;·&nbsp;&nbsp;
+    <b>Pi-hole</b>：Group Management → Adlists，粘贴 hosts 格式地址&nbsp;&nbsp;·&nbsp;&nbsp;
+    <b>系统 / 路由器 hosts</b>：定期下载 hosts 格式地址覆盖 /etc/hosts 追加段
+  </p>
+</section>
+
+<section>
+  <h2>快速开始</h2>
+<pre># 1. 看清单：选一个适合自己 Flash 的 profile
+curl -s http://&lt;你的服务器&gt;:8080/api/v1/manifest | jq '.lists[] | {name,count,hash_bytes}'
+
+# 2. 拉一页域名（文本，可直接写 hosts）
+curl -s "http://&lt;你的服务器&gt;:8080/api/v1/lists/esp32-cn/domains?page=1"
+
+# 3. 拉一页哈希（二进制，1024×4=4096 字节，适合 ESP32 分片存储）
+curl -s "http://&lt;你的服务器&gt;:8080/api/v1/lists/esp32-cn/hashes?page=1" -o p1.bin
+
+# 4. 按 Range 顺序流式下载整张表，边下边写 Flash
+curl -s -H "Range: bytes=0-4095" http://&lt;你的服务器&gt;:8080/api/v1/lists/esp32-cn/raw.u32 -o chunk.bin
+
+# 5. 查一个域名是否命中
+curl -s "http://&lt;你的服务器&gt;:8080/api/v1/lookup/esp32-cn?domain=ads.example.com"</pre>
+</section>
+
+<section>
+  <h2>推荐怎么选</h2>
+  <table>
+    <thead><tr><th>场景</th><th>用哪个列表</th><th class="num">域名数</th><th class="num">u32 体积</th></tr></thead>
+    <tbody id="pick">
+      <tr><td colspan="4" class="muted">读取 manifest…</td></tr>
+    </tbody>
+  </table>
+  <p class="muted" style="font-size:12.5px;margin:10px 0 0">
+    4MB Flash 设备建议只用 <code>esp32-tiny</code> 或 <code>esp32-cn</code>；表放 LittleFS，查询时二分查找读 Flash，不要整表进 RAM。
+  </p>
+</section>
+
+<section>
+  <h2>接口</h2>
+  <table>
+    <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET</code></td><td><code>/api/v1/manifest</code></td><td>全量清单：版本、哈希算法、每表条数/字节数/页数/sha256</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/lists</code></td><td>同上，仅列表数组</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}</code></td><td>单表元信息与可用端点</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/domains?page=1</code></td><td>文本分页，512 条/页，UTF-8，LF 换行</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/hashes?page=1</code></td><td>哈希分页，1024 个 uint32/页，小端</td></tr>
+      <tr><td><code>GET</code></td><td><code>/hosts/{name}.txt</code></td><td><b>标准 hosts 格式</b>（0.0.0.0 域名），直接当订阅链接分发，支持 ETag</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/raw.txt</code></td><td>整表裸域名文本，支持 Range / ETag</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/raw.u32</code></td><td>整表哈希，支持 Range / ETag</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/lookup/{name}?domain=</code></td><td>单表后缀匹配查询</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/check?domain=&amp;lists=a,b</code></td><td>多表联合查询</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/v1/hash?domain=</code></td><td>返回 fnv1a32 值，用于和固件对齐</td></tr>
+      <tr><td><code>GET</code></td><td><code>/healthz</code></td><td>健康检查</td></tr>
+    </tbody>
+  </table>
+  <h3>分页响应头</h3>
+  <div class="kv">
+    <div>X-Total-Count</div><div>该表域名总数</div>
+    <div>X-Total-Pages</div><div>总页数</div>
+    <div>X-Next-Page</div><div>下一页页码，最后一页不返回</div>
+    <div>ETag</div><div>按内容 sha256 生成，可用于增量更新判断</div>
+  </div>
+</section>
+
+<section>
+  <h2>清单</h2>
+  <table>
+    <thead><tr><th>名称</th><th>类别</th><th class="num">域名</th><th class="num">u32</th><th class="num">页</th></tr></thead>
+    <tbody id="lists"><tr><td colspan="5" class="muted">读取 manifest…</td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>哈希表格式</h2>
+  <p style="margin:0 0 8px">每张表是 <b>排序 + 去重</b> 的 <code>uint32</code> 小端数组，每个元素是域名的 FNV-1a 32 位哈希。ESP32 只需二分查找，不需要存储任何字符串。</p>
+<pre>// 与固件完全一致
+uint32_t fnv1a32(const char *s) {
+    uint32_t h = 2166136261u;
+    while (*s) { h ^= (uint8_t)*s++; h *= 16777619u; }
+    return h;
+}
+
+// 查询：先查完整域名，再逐级去掉最左标签（后缀匹配）
+// a.b.ads.example.com → b.ads.example.com → ads.example.com → example.com</pre>
+  <p class="muted" style="font-size:12.5px;margin:8px 0 0">
+    32 位哈希在 30 万条规模下的碰撞概率约 1e-5 量级，且构建时已按值去重；碰撞只会导致极少数域名误拦，不影响正确性。
+  </p>
+</section>
+
+<footer>esp32adlist · Go 单二进制 · 数据由构建器离线生成</footer>
+</div>
+
+<script>
+const fmt = n => n.toLocaleString('zh-CN');
+const kb = n => (n/1024).toFixed(1) + ' KiB';
+
+const PICK = [
+  ['4MB Flash，只想去国内主流广告（最小）', 'esp32-tiny'],
+  ['4MB Flash，国内日常使用（推荐）', 'esp32-cn'],
+  ['4MB Flash，国内外都要（推荐）', 'esp32-mix'],
+  ['8MB Flash / PSRAM，含安卓 App 开屏广告', 'esp32-cn-plus'],
+];
+
+fetch('/api/v1/manifest').then(r => r.json()).then(m => {
+  document.getElementById('ver').textContent = 'v' + m.version;
+  document.getElementById('s-lists').textContent = m.lists.length;
+  document.getElementById('s-domains').textContent = fmt(m.total_unique_domains);
+  const byName = Object.fromEntries(m.lists.map(l => [l.name, l]));
+  const cn = byName['esp32-cn'];
+  if (cn) document.getElementById('s-mini').textContent = kb(cn.hash_bytes);
+  document.getElementById('s-page').textContent = m.domain_page_size;
+
+  document.getElementById('pick').innerHTML = PICK.map(([scene, name]) => {
+    const l = byName[name];
+    if (!l) return '';
+    return `<tr><td>${scene}</td><td><code>${name}</code> <span class="muted">${l.title}</span></td>
+      <td class="num">${fmt(l.count)}</td><td class="num">${kb(l.hash_bytes)}</td></tr>`;
+  }).join('');
+
+  document.getElementById('lists').innerHTML = m.lists.map(l => `
+    <tr>
+      <td><code>${l.name}</code><div class="muted" style="font-size:12px">${l.title}</div></td>
+      <td><span class="tag ${l.category}">${l.category}</span></td>
+      <td class="num">${fmt(l.count)}</td>
+      <td class="num">${kb(l.hash_bytes)}</td>
+      <td class="num">${l.hash_pages}</td>
+    </tr>`).join('');
+  // ---- 订阅链接 ----
+  const URLS = {
+    hosts:   n => `${location.origin}/hosts/${n}.txt`,
+    domains: n => `${location.origin}/api/v1/lists/${n}/raw.txt`,
+    u32:     n => `${location.origin}/api/v1/lists/${n}/raw.u32`,
+  };
+  const sel = document.getElementById('sub-sel');
+  const urlBox = document.getElementById('sub-url');
+  let subFmt = 'hosts'; // 注意：顶层已有 fmt() 数字格式化函数，这里必须换名
+
+  const ordered = [...m.lists].sort((a, b) =>
+    (a.kind === 'profile' ? 0 : 1) - (b.kind === 'profile' ? 0 : 1) || b.count - a.count);
+  sel.innerHTML = ordered.map(l => {
+    const tag = l.kind === 'profile' ? '★ ' : '';
+    return `<option value="${l.name}">${tag}${l.name} — ${l.title}（${fmt(l.count)} 域名）</option>`;
+  }).join('');
+  sel.value = 'esp32-cn';
+
+  const refresh = () => { urlBox.value = URLS[subFmt](sel.value); };
+  sel.addEventListener('change', refresh);
+  document.getElementById('fmt').addEventListener('click', e => {
+    const p = e.target.closest('.pill');
+    if (!p) return;
+    subFmt = p.dataset.fmt;
+    document.querySelectorAll('#fmt .pill').forEach(x => x.classList.toggle('on', x === p));
+    refresh();
+  });
+
+  const btn = document.getElementById('sub-copy');
+  btn.addEventListener('click', () => {
+    const v = urlBox.value;
+    const done = () => { btn.textContent = '已复制 ✓'; btn.classList.add('done');
+      setTimeout(() => { btn.textContent = '复制链接'; btn.classList.remove('done'); }, 1500); };
+    const fallback = () => { urlBox.select(); document.execCommand('copy'); done(); };
+    // http 环境下 clipboard API 可能不可用，失败就走 execCommand 兜底
+    try { navigator.clipboard.writeText(v).then(done, fallback); } catch (e) { fallback(); }
+  });
+  refresh();
+}).catch(e => {
+  document.getElementById('ver').textContent = '离线';
+});
+</script>
+</body>
+</html>

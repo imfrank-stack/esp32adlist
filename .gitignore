@@ -1,0 +1,11 @@
+bin/
+data/dist/
+data/shots/
+.tools/
+logs/
+run/
+.tmp/
+.workbuddy/
+*.exe
+*.part
+*.log
