@@ -176,7 +176,22 @@ const PICK = [
   ['8MB Flash / PSRAM，含安卓 App 开屏广告', 'esp32-cn-plus'],
 ];
 
-fetch('/api/v1/manifest').then(r => r.json()).then(m => {
+// ---- 访问令牌 ----
+// URL 带 ?token= 时种入 cookie（一年），之后直接开首页也认；
+// 复制出来的链接自动携带 token，订阅工具和 ESP32 固件无需额外配置。
+// 注意：必须在最前面处理（先种 cookie），否则本行的 manifest 请求会被 404。
+const TOKEN = (() => {
+  const q = location.search.match(/[?&]token=([^&]+)/);
+  if (q) {
+    document.cookie = 'esp32adlist_token=' + q[1] + ';path=/;max-age=31536000;SameSite=Lax';
+    return q[1];
+  }
+  const ck = document.cookie.match(/(?:^|;\s*)esp32adlist_token=([^;]+)/);
+  return ck ? ck[1] : '';
+})();
+const tq = TOKEN ? '?token=' + encodeURIComponent(TOKEN) : '';
+
+fetch('/api/v1/manifest' + tq).then(r => r.json()).then(m => {
   document.getElementById('ver').textContent = 'v' + m.version;
   document.getElementById('s-lists').textContent = m.lists.length;
   document.getElementById('s-domains').textContent = fmt(m.total_unique_domains);
@@ -202,9 +217,9 @@ fetch('/api/v1/manifest').then(r => r.json()).then(m => {
     </tr>`).join('');
   // ---- 订阅链接 ----
   const URLS = {
-    hosts:   n => `${location.origin}/hosts/${n}.txt`,
-    domains: n => `${location.origin}/api/v1/lists/${n}/raw.txt`,
-    u32:     n => `${location.origin}/api/v1/lists/${n}/raw.u32`,
+    hosts:   n => `${location.origin}/hosts/${n}.txt${tq}`,
+    domains: n => `${location.origin}/api/v1/lists/${n}/raw.txt${tq}`,
+    u32:     n => `${location.origin}/api/v1/lists/${n}/raw.u32${tq}`,
   };
   const sel = document.getElementById('sub-sel');
   const urlBox = document.getElementById('sub-url');

@@ -28,6 +28,7 @@ func main() {
 		dir     = flag.String("dir", "data/dist", "构建产物目录")
 		reload  = flag.Duration("reload", 30*time.Second, "manifest 变更检查间隔，0 关闭")
 		logPath = flag.String("log", "", "同时把访问日志追加写入该文件")
+		token   = flag.String("token", "", "访问令牌；非空时所有请求必须带 ?token= 或有效 cookie，否则一律 404")
 	)
 	flag.Parse()
 
@@ -97,7 +98,27 @@ func main() {
 	})
 
 	// 统一附加 CORS 与请求日志
+	// tokenOK 校验访问令牌：查询参数或 cookie 命中即可。
+	// 校验失败统一回 404，让未授权者以为服务不存在，也不给爆破反馈。
+	tokenOK := func(r *http.Request) bool {
+		if *token == "" {
+			return true
+		}
+		if r.URL.Query().Get("token") == *token {
+			return true
+		}
+		if ck, err := r.Cookie("esp32adlist_token"); err == nil && ck.Value == *token {
+			return true
+		}
+		return false
+	}
+
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !tokenOK(r) {
+			time.Sleep(50 * time.Millisecond) // 轻微延迟，抬高字典爆破成本
+			http.NotFound(w, r)
+			return
+		}
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		start := time.Now()
