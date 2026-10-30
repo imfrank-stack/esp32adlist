@@ -71,7 +71,7 @@
 <header>
   <div>
     <h1>ESP32 广告过滤规则 API</h1>
-    <p class="sub">分片拉取 · 去重排序 · 32 位哈希索引，按 4MB 内存设备约束设计</p>
+    <p class="sub">自托管广告过滤规则服务 · 复制订阅链接即可分发</p>
   </div>
   <span class="badge" id="ver">加载中…</span>
 </header>
@@ -108,23 +108,7 @@
   </p>
 </section>
 
-<section>
-  <h2>快速开始</h2>
-<pre># 1. 看清单：选一个适合自己 Flash 的 profile
-curl -s http://&lt;你的服务器&gt;:8080/api/v1/manifest | jq '.lists[] | {name,count,hash_bytes}'
 
-# 2. 拉一页域名（文本，可直接写 hosts）
-curl -s "http://&lt;你的服务器&gt;:8080/api/v1/lists/esp32-cn/domains?page=1"
-
-# 3. 拉一页哈希（二进制，1024×4=4096 字节，适合 ESP32 分片存储）
-curl -s "http://&lt;你的服务器&gt;:8080/api/v1/lists/esp32-cn/hashes?page=1" -o p1.bin
-
-# 4. 按 Range 顺序流式下载整张表，边下边写 Flash
-curl -s -H "Range: bytes=0-4095" http://&lt;你的服务器&gt;:8080/api/v1/lists/esp32-cn/raw.u32 -o chunk.bin
-
-# 5. 查一个域名是否命中
-curl -s "http://&lt;你的服务器&gt;:8080/api/v1/lookup/esp32-cn?domain=ads.example.com"</pre>
-</section>
 
 <section>
   <h2>推荐怎么选</h2>
@@ -135,62 +119,48 @@ curl -s "http://&lt;你的服务器&gt;:8080/api/v1/lookup/esp32-cn?domain=ads.e
     </tbody>
   </table>
   <p class="muted" style="font-size:12.5px;margin:10px 0 0">
-    4MB Flash 设备建议只用 <code>esp32-tiny</code> 或 <code>esp32-cn</code>；表放 LittleFS，查询时二分查找读 Flash，不要整表进 RAM。
+    小内存设备（4MB Flash）建议选 <code>esp32-tiny</code> 或 <code>esp32-cn</code>。
   </p>
 </section>
 
 <section>
-  <h2>接口</h2>
+  <h2>全部列表</h2>
   <table>
-    <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
-    <tbody>
-      <tr><td><code>GET</code></td><td><code>/api/v1/manifest</code></td><td>全量清单：版本、哈希算法、每表条数/字节数/页数/sha256</td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/v1/lists</code></td><td>同上，仅列表数组</td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}</code></td><td>单表元信息与可用端点</td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/domains?page=1</code></td><td>文本分页，512 条/页，UTF-8，LF 换行</td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/hashes?page=1</code></td><td>哈希分页，1024 个 uint32/页，小端</td></tr>
-      <tr><td><code>GET</code></td><td><code>/hosts/{name}.txt</code></td><td><b>标准 hosts 格式</b>（0.0.0.0 域名），直接当订阅链接分发，支持 ETag</td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/raw.txt</code></td><td>整表裸域名文本，支持 Range / ETag</td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/raw.u32</code></td><td>整表哈希，支持 Range / ETag</td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/v1/lookup/{name}?domain=</code></td><td>单表后缀匹配查询</td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/v1/check?domain=&amp;lists=a,b</code></td><td>多表联合查询</td></tr>
-      <tr><td><code>GET</code></td><td><code>/api/v1/hash?domain=</code></td><td>返回 fnv1a32 值，用于和固件对齐</td></tr>
-      <tr><td><code>GET</code></td><td><code>/healthz</code></td><td>健康检查</td></tr>
-    </tbody>
-  </table>
-  <h3>分页响应头</h3>
-  <div class="kv">
-    <div>X-Total-Count</div><div>该表域名总数</div>
-    <div>X-Total-Pages</div><div>总页数</div>
-    <div>X-Next-Page</div><div>下一页页码，最后一页不返回</div>
-    <div>ETag</div><div>按内容 sha256 生成，可用于增量更新判断</div>
-  </div>
-</section>
-
-<section>
-  <h2>清单</h2>
-  <table>
-    <thead><tr><th>名称</th><th>类别</th><th class="num">域名</th><th class="num">u32</th><th class="num">页</th></tr></thead>
-    <tbody id="lists"><tr><td colspan="5" class="muted">读取 manifest…</td></tr></tbody>
+    <thead><tr><th>名称</th><th>类别</th><th class="num">域名</th><th class="num">u32</th></tr></thead>
+    <tbody id="lists"><tr><td colspan="4" class="muted">读取 manifest…</td></tr></tbody>
   </table>
 </section>
 
-<section>
-  <h2>哈希表格式</h2>
-  <p style="margin:0 0 8px">每张表是 <b>排序 + 去重</b> 的 <code>uint32</code> 小端数组，每个元素是域名的 FNV-1a 32 位哈希。ESP32 只需二分查找，不需要存储任何字符串。</p>
-<pre>// 与固件完全一致
-uint32_t fnv1a32(const char *s) {
+<details style="margin-bottom:18px">
+  <summary style="cursor:pointer;color:var(--muted);font-size:13px;padding:8px 0">开发者对接说明（ESP32 固件 / API，点开展开）</summary>
+  <section style="margin-top:10px">
+    <h2>接口</h2>
+    <table>
+      <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET</code></td><td><code>/api/v1/manifest</code></td><td>全量清单：版本、哈希算法、每表条数/字节数/页数/sha256</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/domains?page=1</code></td><td>文本分页，512 条/页，UTF-8，LF 换行</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/hashes?page=1</code></td><td>哈希分页，1024 个 uint32/页，小端</td></tr>
+        <tr><td><code>GET</code></td><td><code>/hosts/{name}.txt</code></td><td>标准 hosts 格式（0.0.0.0 域名），可直接分发</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/raw.txt</code></td><td>整表裸域名文本，支持 Range / ETag</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/lists/{name}/raw.u32</code></td><td>整表哈希，支持 Range / ETag</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/lookup/{name}?domain=</code></td><td>单表后缀匹配查询</td></tr>
+        <tr><td><code>GET</code></td><td><code>/healthz</code></td><td>健康检查</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section style="margin-top:14px">
+    <h2>哈希表格式</h2>
+    <p style="margin:0 0 8px">每张表是排序去重的 <code>uint32</code> 小端数组（FNV-1a 32 位）。ESP32 存 Flash 二分查找，不占 RAM。</p>
+<pre>uint32_t fnv1a32(const char *s) {
     uint32_t h = 2166136261u;
     while (*s) { h ^= (uint8_t)*s++; h *= 16777619u; }
     return h;
 }
-
 // 查询：先查完整域名，再逐级去掉最左标签（后缀匹配）
 // a.b.ads.example.com → b.ads.example.com → ads.example.com → example.com</pre>
-  <p class="muted" style="font-size:12.5px;margin:8px 0 0">
-    32 位哈希在 30 万条规模下的碰撞概率约 1e-5 量级，且构建时已按值去重；碰撞只会导致极少数域名误拦，不影响正确性。
-  </p>
-</section>
+  </section>
+</details>
 
 <footer>esp32adlist · Go 单二进制 · 数据由构建器离线生成</footer>
 </div>
